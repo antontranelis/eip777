@@ -11,8 +11,8 @@ const ReferenceToken = require('../js/ReferenceToken');
 
 const assert = chai.assert;
 const { utils } = Web3;
-const log = (msg) => { if (process.env.MOCHA_VERBOSE) console.log(msg); };
 const blocks = [];
+const log = (msg) => process.env.MOCHA_VERBOSE && console.log(msg);
 
 describe('EIP777 Reference Token Test', () => {
   let testrpc;
@@ -21,6 +21,16 @@ describe('EIP777 Reference Token Test', () => {
   let referenceToken;
   let tokenableContractsRegistry;
   let interfaceImplementationRegistry;
+
+  // this needs to be defined here because it needs web3
+  const getBlock = (() => {
+    let blockIdx = 0;
+    return async () => {
+      blocks[blockIdx] = await web3.eth.getBlockNumber();
+      log(`block ${blockIdx} -> ${blocks[blockIdx]}`);
+      blockIdx++;
+    }
+  })();
 
   before(async () => {
     testrpc = TestRPC.server({
@@ -66,23 +76,21 @@ describe('EIP777 Reference Token Test', () => {
   }).timeout(20000);
 
   it('should mint 10 tokens for address 1', async () => {
-    blocks[0] = await web3.eth.getBlockNumber();
-    log(`block 0 -> ${blocks[0]}`);
+    getBlock();
 
     await referenceToken.ownerMint(accounts[1], web3.utils.toWei("10"), '0x', {
       gas: 300000,
       from: accounts[0]
     });
 
-    blocks[1] = await web3.eth.getBlockNumber();
-    log(`block 1 -> ${blocks[1]}`);
+    getBlock();
 
     const totalSupply = await referenceToken.totalSupply();
     assert.equal(web3.utils.fromWei(totalSupply), 10);
-    log(`totalSupply: ${totalSupply}`);
+    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
 
     const balance = await referenceToken.balanceOf(accounts[1]);
     assert.equal(web3.utils.fromWei(balance), 10);
-    log(`balance[${accounts[1]}]: ${balance}`);
+    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance)}`);
   }).timeout(6000);
 });
