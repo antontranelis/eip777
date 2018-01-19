@@ -5,15 +5,13 @@
 const TestRPC = require('ethereumjs-testrpc');
 const Web3 = require('web3');
 const chai = require('chai');
-chai.use(require('chai-as-promised')).should();
 const EIP820 = require('eip820');
 const TokenableContractsRegistry = require('../js/TokenableContractsRegistry');
 const ReferenceToken = require('../js/ReferenceToken');
-
 const assert = chai.assert;
 const { utils } = Web3;
-const blocks = [];
-const log = (msg) => process.env.MOCHA_VERBOSE && console.log(msg);
+chai.use(require('chai-as-promised')).should();
+
 
 describe('EIP777 Reference Token Test', () => {
   let testrpc;
@@ -22,16 +20,7 @@ describe('EIP777 Reference Token Test', () => {
   let referenceToken;
   let tokenableContractsRegistry;
   let interfaceImplementationRegistry;
-
-  // this needs to be defined here because it needs web3
-  const getBlock = (() => {
-    let blockIdx = 0;
-    return async () => {
-      blocks[blockIdx] = await web3.eth.getBlockNumber();
-      log(`block ${blockIdx} -> ${blocks[blockIdx]}`);
-      blockIdx++;
-    }
-  })();
+  let util;
 
   before(async () => {
     testrpc = TestRPC.server({ws: true, gasLimit: 5800000, total_accounts: 10});
@@ -59,21 +48,22 @@ describe('EIP777 Reference Token Test', () => {
     );
     assert.ok(referenceToken.$address);
 
+    util = require('./util')(web3, referenceToken);
+    util.getBlock();
+
     const name = await referenceToken.name();
     assert.strictEqual(name, 'Reference Token');
-    log(`name: ${name}`);
+    util.log(`name: ${name}`);
 
     const symbol = await referenceToken.symbol();
     assert.strictEqual(symbol, 'XRT');
-    log(`symbol: ${symbol}`);
+    util.log(`symbol: ${symbol}`);
 
     const granularity = await referenceToken.granularity();
     assert.strictEqual(web3.utils.fromWei(granularity), '0.01');
-    log(`granularity: ${granularity}`);
+    util.log(`granularity: ${granularity}`);
 
-    const totalSupply = await referenceToken.totalSupply();
-    assert.strictEqual(totalSupply, '0');
-    log(`totalSupply: ${totalSupply}`);
+    util.assertTotalSupply(0);
   }).timeout(20000);
 
   it('should mint 10 XRT for addr 1', async () => {
@@ -81,16 +71,10 @@ describe('EIP777 Reference Token Test', () => {
       gas: 300000,
       from: accounts[0]
     });
+    util.getBlock();
 
-    getBlock();
-
-    const totalSupply = await referenceToken.totalSupply();
-    assert.equal(web3.utils.fromWei(totalSupply), 10);
-    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
-
-    const balance = await referenceToken.balanceOf(accounts[1]);
-    assert.equal(web3.utils.fromWei(balance), 10);
-    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance)}`);
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 10);
   }).timeout(6000);
 
   it('should let addr 1 send 3 XRT to addr 2', async () => {
@@ -98,6 +82,12 @@ describe('EIP777 Reference Token Test', () => {
       gas: 300000,
       from: accounts[1]
     });
+    util.getBlock();
+
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 7);
+    util.assertBalance(accounts[2], 3);
+  }).timeout(6000);
 
     getBlock();
 
