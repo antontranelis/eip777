@@ -94,4 +94,46 @@ describe('EIP777 Reference Token Test', () => {
     assert.equal(web3.utils.fromWei(balance), 10);
     log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance)}`);
   }).timeout(6000);
+
+  it('should send 3 tokens from address 1 to address 2', async () => {
+    await referenceToken.send(accounts[2], web3.utils.toWei("3"), {
+      gas: 300000,
+      from: accounts[1]
+    });
+
+    getBlock();
+
+    const totalSupply = await referenceToken.totalSupply();
+    assert.equal(web3.utils.fromWei(totalSupply), 10);
+    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
+
+    const balance1 = await referenceToken.balanceOf(accounts[1]);
+    assert.equal(web3.utils.fromWei(balance1), 7);
+    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance1)}`);
+
+    const balance2 = await referenceToken.balanceOf(accounts[2]);
+    assert.equal(web3.utils.fromWei(balance2), 3);
+    log(`balance[${accounts[2]}]: ${web3.utils.fromWei(balance2)}`);
+  }).timeout(6000);
+
+  it('should not send -3 tokens from address 1 to address 2', async () => {
+    await referenceToken.send(accounts[2], web3.utils.toWei("-3"), {
+      gas: 300000,
+      from: accounts[1]
+    }).should.be.rejectedWith('invalid opcode');
+
+    getBlock();
+
+    const totalSupply = await referenceToken.totalSupply();
+    assert.equal(web3.utils.fromWei(totalSupply), 10);
+    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
+
+    const balance1 = await referenceToken.balanceOf(accounts[1]);
+    assert.equal(web3.utils.fromWei(balance1), 7);
+    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance1)}`);
+
+    const balance2 = await referenceToken.balanceOf(accounts[2]);
+    assert.equal(web3.utils.fromWei(balance2), 3);
+    log(`balance[${accounts[2]}]: ${web3.utils.fromWei(balance2)}`);
+  }).timeout(6000);
 });
