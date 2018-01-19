@@ -77,6 +77,17 @@ describe('EIP777 Reference Token Test', () => {
     util.assertBalance(accounts[1], 10);
   }).timeout(6000);
 
+  it('should not mint -10 XRT (negative value)', async () => {
+    await referenceToken.ownerMint(accounts[1], web3.utils.toWei("-10"), '0x', {
+      gas: 300000,
+      from: accounts[0]
+    }).should.be.rejectedWith("invalid opcode");
+    util.getBlock();
+
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 10);
+  }).timeout(6000);
+
   it('should let addr 1 send 3 XRT to addr 2', async () => {
     await referenceToken.send(accounts[2], web3.utils.toWei("3"), {
       gas: 300000,
@@ -89,39 +100,116 @@ describe('EIP777 Reference Token Test', () => {
     util.assertBalance(accounts[2], 3);
   }).timeout(6000);
 
-    getBlock();
+  it('should not let addr 1 send 9 XRT (not enough funds)', async () => {
 
-    const totalSupply = await referenceToken.totalSupply();
-    assert.equal(web3.utils.fromWei(totalSupply), 10);
-    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
+  });
 
-    const balance1 = await referenceToken.balanceOf(accounts[1]);
-    assert.equal(web3.utils.fromWei(balance1), 7);
-    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance1)}`);
-
-    const balance2 = await referenceToken.balanceOf(accounts[2]);
-    assert.equal(web3.utils.fromWei(balance2), 3);
-    log(`balance[${accounts[2]}]: ${web3.utils.fromWei(balance2)}`);
-  }).timeout(6000);
-
-  it('should not send -3 tokens from address 1 to address 2', async () => {
+  it('should not let addr 1 send -3 XRT (negative value)', async () => {
     await referenceToken.send(accounts[2], web3.utils.toWei("-3"), {
       gas: 300000,
       from: accounts[1]
     }).should.be.rejectedWith('invalid opcode');
 
-    getBlock();
+    util.getBlock();
 
-    const totalSupply = await referenceToken.totalSupply();
-    assert.equal(web3.utils.fromWei(totalSupply), 10);
-    log(`totalSupply: ${web3.utils.fromWei(totalSupply)}`);
-
-    const balance1 = await referenceToken.balanceOf(accounts[1]);
-    assert.equal(web3.utils.fromWei(balance1), 7);
-    log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance1)}`);
-
-    const balance2 = await referenceToken.balanceOf(accounts[2]);
-    assert.equal(web3.utils.fromWei(balance2), 3);
-    log(`balance[${accounts[2]}]: ${web3.utils.fromWei(balance2)}`);
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 7);
+    util.assertBalance(accounts[2], 3);
   }).timeout(6000);
+
+  it('should not let addr 1 send 0.007 XRT (< granulairty)', async () => {
+    await referenceToken.send(accounts[2], web3.utils.toWei("0.007"), {
+      gas: 300000,
+      from: accounts[1]
+    }).should.be.rejectedWith('invalid opcode');
+
+    util.getBlock();
+
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 7);
+    util.assertBalance(accounts[2], 3);
+  }).timeout(6000);
+
+  it('should authorize addr 3 as an operator for addr 1', async () => {
+    assert.isFalse(
+      await referenceToken.isOperatorFor(accounts[3], accounts[1])
+    );
+    await referenceToken.authorizeOperator(accounts[3], {
+      from: accounts[1],
+      gas: 300000
+    });
+    util.getBlock();
+    assert.isTrue(await referenceToken.isOperatorFor(accounts[3], accounts[1]));
+  }).timeout(6000);
+
+  it('should let addr 3 send from addr 1', async () => {
+    await referenceToken.operatorSend(
+      accounts[1],
+      accounts[2],
+      web3.utils.toWei("1.12"),
+      "0x",
+      "0x",
+      {gas: 300000, from: accounts[3]}
+    );
+    util.getBlock();
+
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 5.88);
+    util.assertBalance(accounts[2], 4.12);
+  }).timeout(6000);
+
+  it('should revoke addr 3 as an operator for addr 1', async () => {
+    assert.isTrue(await referenceToken.isOperatorFor(accounts[3], accounts[1]));
+    await referenceToken.revokeOperator(accounts[3], {
+      from: accounts[1],
+      gas: 300000
+    });
+    util.getBlock();
+
+    assert.isFalse(
+      await referenceToken.isOperatorFor(accounts[3], accounts[1])
+    );
+  }).timeout(6000);
+
+  it('should not let addr 3 send from addr 1 (not operator)', async () => {
+    await referenceToken.operatorSend(
+      accounts[1],
+      accounts[2],
+      web3.utils.toWei("3.72"),
+      "0x",
+      "0x",
+      {gas: 300000, from: accounts[3]}
+    ).should.be.rejectedWith("invalid opcode");
+    util.getBlock();
+
+    util.assertTotalSupply(10);
+    util.assertBalance(accounts[1], 5.88);
+    util.assertBalance(accounts[2], 4.12);
+  }).timeout(6000);
+
+
+  it('should burn 1.35 XRT from addr 1', async () => {
+    await referenceToken.burn(accounts[1], web3.utils.toWei("1.35"), {
+      from: accounts[0],
+      gas: 300000
+    });
+    util.getBlock();
+
+    util.assertTotalSupply(8.65);
+    util.assertBalance(accounts[1], 4.53);
+    util.assertBalance(accounts[2], 4.12);
+  }).timeout(6000);
+
+  it('should not burn -3.84 XRT (negative value)', async () => {
+    await referenceToken.burn(accounts[1], web3.utils.toWei("-3.84"), {
+      from: accounts[0],
+      gas: 300000
+    }).should.be.rejectedWith("invalid opcode");
+    util.getBlock();
+
+    util.assertTotalSupply(8.65);
+    util.assertBalance(accounts[1], 4.53);
+    util.assertBalance(accounts[2], 4.12);
+  }).timeout(6000);
+
 });
