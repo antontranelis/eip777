@@ -5,6 +5,7 @@
 const TestRPC = require('ethereumjs-testrpc');
 const Web3 = require('web3');
 const chai = require('chai');
+chai.use(require('chai-as-promised')).should();
 const EIP820 = require('eip820');
 const TokenableContractsRegistry = require('../js/TokenableContractsRegistry');
 const ReferenceToken = require('../js/ReferenceToken');
