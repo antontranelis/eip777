@@ -34,11 +34,7 @@ describe('EIP777 Reference Token Test', () => {
   })();
 
   before(async () => {
-    testrpc = TestRPC.server({
-      ws: true,
-      gasLimit: 5800000,
-      total_accounts: 10,
-    });
+    testrpc = TestRPC.server({ws: true, gasLimit: 5800000, total_accounts: 10});
     testrpc.listen(8546, '127.0.0.1');
 
     web3 = new Web3('ws://localhost:8546');
@@ -51,12 +47,16 @@ describe('EIP777 Reference Token Test', () => {
   after(async () => await testrpc.close());
 
   it('should deploy the reference token contract', async () => {
-
     tokenableContractsRegistry = await TokenableContractsRegistry.new(web3);
     assert.ok(tokenableContractsRegistry.$address);
 
-    referenceToken = await ReferenceToken.new(web3,
-      'Reference Token', 'XRT', web3.utils.toWei("0.01"), tokenableContractsRegistry.$address);
+    referenceToken = await ReferenceToken.new(
+      web3,
+      'Reference Token',
+      'XRT',
+      web3.utils.toWei("0.01"),
+      tokenableContractsRegistry.$address
+    );
     assert.ok(referenceToken.$address);
 
     const name = await referenceToken.name();
@@ -76,9 +76,7 @@ describe('EIP777 Reference Token Test', () => {
     log(`totalSupply: ${totalSupply}`);
   }).timeout(20000);
 
-  it('should mint 10 tokens for address 1', async () => {
-    getBlock();
-
+  it('should mint 10 XRT for addr 1', async () => {
     await referenceToken.ownerMint(accounts[1], web3.utils.toWei("10"), '0x', {
       gas: 300000,
       from: accounts[0]
@@ -95,7 +93,7 @@ describe('EIP777 Reference Token Test', () => {
     log(`balance[${accounts[1]}]: ${web3.utils.fromWei(balance)}`);
   }).timeout(6000);
 
-  it('should send 3 tokens from address 1 to address 2', async () => {
+  it('should let addr 1 send 3 XRT to addr 2', async () => {
     await referenceToken.send(accounts[2], web3.utils.toWei("3"), {
       gas: 300000,
       from: accounts[1]
