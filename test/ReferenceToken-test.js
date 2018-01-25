@@ -103,7 +103,16 @@ describe('EIP777 Reference Token Test', () => {
   }).timeout(6000);
 
   it('should not let addr 1 send 9 XRT (not enough funds)', async () => {
+    await referenceToken.send(accounts[2], web3.utils.toWei('9'), {
+      gas: 300000,
+      from: accounts[1],
+    }).should.be.rejectedWith('invalid opcode');
 
+    await util.getBlock();
+
+    await util.assertTotalSupply(10);
+    await util.assertBalance(accounts[1], 7);
+    await util.assertBalance(accounts[2], 3);
   });
 
   it('should not let addr 1 send -3 XRT (negative value)', async () => {
