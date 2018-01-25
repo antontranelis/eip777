@@ -5,7 +5,6 @@
 const chai = require('chai');
 const assert = chai.assert;
 
-
 module.exports = (web3, tokenContract) => {
   const blocks = [];
   let blockIdx = 0;
@@ -30,5 +29,5 @@ module.exports = (web3, tokenContract) => {
       assert.equal(web3.utils.fromWei(balance), expected);
       this.log(`balance[${account}]: ${web3.utils.fromWei(balance)}`);
     },
-  }
-}
+  };
+};
